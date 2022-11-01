@@ -21,7 +21,7 @@ pub fn encrypt<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>>(
 
     for (chunk, output) in chunks.zip(ret.chunks_mut(KYBER_CIPHERTEXTBYTES)) {
         if chunk.len() < KYBER_BLOCK_SIZE {
-            // bit the buffer to KYBER_BLOCK_SIZE
+            // fit the buffer to KYBER_BLOCK_SIZE
             let mut buf = vec![0u8; KYBER_BLOCK_SIZE];
             let slice = &mut buf.as_mut_slice()[..chunk.len()];
             slice.copy_from_slice(chunk);
