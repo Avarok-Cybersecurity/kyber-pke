@@ -1,0 +1,13 @@
+name: Execute Pipeline
+on:
+  pull_request:
+    types:
+      - edited
+      - opened
+      - reopened
+      - synchronize
+  workflow_dispatch:
+jobs:
+  workflow:
+    name: Merge PR
+    uses: ./.github/workflows/validate_pr.yml

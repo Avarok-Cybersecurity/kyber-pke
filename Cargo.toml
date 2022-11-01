@@ -5,5 +5,18 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["kyber1024", "zeroize", "std"]
+
+std = ["byteorder/std"]
+kyber1024 = ["pqc_kyber/kyber1024"]
+kyber768 = ["pqc_kyber/kyber768"]
+kyber512 = ["pqc_kyber/kyber512"]
+wasm = ["pqc_kyber/wasm"]
+zeroize = ["pqc_kyber/zeroize"]
+avx2 = ["pqc_kyber/avx2"]
+
 [dependencies]
-pqc_kyber = { git = "https://github.com/Argyle-Software/kyber.git", branch = "master" }
+pqc_kyber = { git = "https://github.com/Avarok-Cybersecurity/kyber.git", branch = "master" }
+byteorder = "1.4.3"
+rand = "0.8.5"
