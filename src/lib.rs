@@ -1,6 +1,6 @@
 use crate::Error::Decrypt;
 use byteorder::{ByteOrder, NetworkEndian, WriteBytesExt};
-use pqc_kyber::{PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES};
+use pqc_kyber::{PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES, KYBER_SECRETKEYBYTES, indcpa_keypair};
 
 const KYBER_BLOCK_SIZE: usize = 32;
 const LENGTH_FIELD: usize = 8;
@@ -113,8 +113,10 @@ pub fn decrypt<T: AsRef<[u8]>, R: AsRef<[u8]>>(
 
 pub fn pke_keypair() -> (PublicKey, SecretKey) {
     let mut rng = rand::rngs::OsRng::default();
-    let keys = pqc_kyber::keypair(&mut rng);
-    (keys.public, keys.secret)
+    let mut public = [0u8; pqc_kyber::KYBER_PUBLICKEYBYTES];
+    let mut secret = [0u8; KYBER_SECRETKEYBYTES];
+    indcpa_keypair(&mut public, &mut secret, None, &mut rng);
+    (public, secret)
 }
 
 #[derive(Debug, Clone)]
