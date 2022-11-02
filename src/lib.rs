@@ -3,27 +3,48 @@ use byteorder::{ByteOrder, NetworkEndian, WriteBytesExt};
 use pqc_kyber::{PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES};
 
 const KYBER_BLOCK_SIZE: usize = 32;
+const LENGTH_FIELD: usize = 8;
 
 pub fn encrypt<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>>(
     public_key: T,
     plaintext: R,
     nonce: V,
 ) -> Result<Vec<u8>, Error> {
+    let full_ciphertext_len = ct_len(plaintext.as_ref().len());
+    let mut out = vec![0u8; full_ciphertext_len];
+    encrypt_into(public_key, plaintext, nonce, out.as_mut_slice())?;
+    Ok(out)
+}
+
+fn ct_len(plaintext_len: usize) -> usize {
+    (div_ceil(plaintext_len as f32, KYBER_BLOCK_SIZE as f32) * KYBER_CIPHERTEXTBYTES) + LENGTH_FIELD
+}
+
+pub fn encrypt_into<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>, O: AsMut<[u8]>>(
+    public_key: T,
+    plaintext: R,
+    nonce: V,
+    mut ret: O,
+) -> Result<(), Error> {
     let public_key = public_key.as_ref();
     let nonce = nonce.as_ref();
     let plaintext = plaintext.as_ref();
+    let ret = ret.as_mut();
+
+    if ret.len() < ct_len(plaintext.len()) {
+        return Err(Error::Encrypt(format!(
+            "Bad output buffer len {}",
+            ret.len()
+        )));
+    }
 
     let chunks = plaintext.chunks(KYBER_BLOCK_SIZE);
-    let full_ciphertext_output_len = chunks.len() * KYBER_CIPHERTEXTBYTES;
-    const LENGTH_FIELD: usize = 8;
-
-    let mut ret = vec![0u8; full_ciphertext_output_len + LENGTH_FIELD];
 
     for (chunk, output) in chunks.zip(ret.chunks_mut(KYBER_CIPHERTEXTBYTES)) {
         if chunk.len() < KYBER_BLOCK_SIZE {
             // fit the buffer to KYBER_BLOCK_SIZE
-            let mut buf = vec![0u8; KYBER_BLOCK_SIZE];
-            let slice = &mut buf.as_mut_slice()[..chunk.len()];
+            let mut buf = [0u8; KYBER_BLOCK_SIZE];
+            let slice = &mut buf[..chunk.len()];
             slice.copy_from_slice(chunk);
             pqc_kyber::indcpa_enc(output, &buf, public_key, nonce);
         } else {
@@ -32,10 +53,12 @@ pub fn encrypt<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>>(
     }
 
     // append the plaintext len
-    ret.write_u64::<NetworkEndian>(plaintext.len() as u64)
+    let length_pos = ret.len() - 8;
+    (&mut ret[length_pos..])
+        .write_u64::<NetworkEndian>(plaintext.len() as u64)
         .unwrap();
 
-    Ok(ret)
+    Ok(())
 }
 
 pub fn decrypt<T: AsRef<[u8]>, R: AsRef<[u8]>>(
