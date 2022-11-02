@@ -17,7 +17,7 @@ pub fn encrypt<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>>(
 }
 
 fn ct_len(plaintext_len: usize) -> usize {
-    (div_ceil(plaintext_len as f32, KYBER_BLOCK_SIZE as f32) * KYBER_CIPHERTEXTBYTES) + LENGTH_FIELD
+    std::cmp::max(KYBER_CIPHERTEXTBYTES, div_ceil(plaintext_len as f32, KYBER_BLOCK_SIZE as f32) * KYBER_CIPHERTEXTBYTES) + LENGTH_FIELD
 }
 
 pub fn encrypt_into<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>, O: AsMut<[u8]>>(
@@ -29,6 +29,7 @@ pub fn encrypt_into<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>, O: AsMut<[u8
     let public_key = public_key.as_ref();
     let nonce = nonce.as_ref();
     let plaintext = plaintext.as_ref();
+    let plaintext_length = plaintext.len();
     let ret = ret.as_mut();
 
     if ret.len() < ct_len(plaintext.len()) {
@@ -38,24 +39,30 @@ pub fn encrypt_into<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>, O: AsMut<[u8
         )));
     }
 
-    let chunks = plaintext.chunks(KYBER_BLOCK_SIZE);
+    if plaintext_length != 0 {
+        let chunks = plaintext.chunks(KYBER_BLOCK_SIZE);
 
-    for (chunk, output) in chunks.zip(ret.chunks_mut(KYBER_CIPHERTEXTBYTES)) {
-        if chunk.len() < KYBER_BLOCK_SIZE {
-            // fit the buffer to KYBER_BLOCK_SIZE
-            let mut buf = [0u8; KYBER_BLOCK_SIZE];
-            let slice = &mut buf[..chunk.len()];
-            slice.copy_from_slice(chunk);
-            pqc_kyber::indcpa_enc(output, &buf, public_key, nonce);
-        } else {
-            pqc_kyber::indcpa_enc(output, chunk, public_key, nonce);
+        for (chunk, output) in chunks.zip(ret.chunks_mut(KYBER_CIPHERTEXTBYTES)) {
+            if chunk.len() < KYBER_BLOCK_SIZE {
+                // fit the buffer to KYBER_BLOCK_SIZE
+                let mut buf = [0u8; KYBER_BLOCK_SIZE];
+                let slice = &mut buf[..chunk.len()];
+                slice.copy_from_slice(chunk);
+                pqc_kyber::indcpa_enc(output, &buf, public_key, nonce);
+            } else {
+                pqc_kyber::indcpa_enc(output, chunk, public_key, nonce);
+            }
         }
+    } else {
+        // fill with zeroes
+        let zeroes = [0u8; KYBER_BLOCK_SIZE];
+        pqc_kyber::indcpa_enc(ret, &zeroes, public_key, nonce);
     }
 
     // append the plaintext len
     let length_pos = ret.len() - 8;
     (&mut ret[length_pos..])
-        .write_u64::<NetworkEndian>(plaintext.len() as u64)
+        .write_u64::<NetworkEndian>(plaintext_length as u64)
         .unwrap();
 
     Ok(())
@@ -130,8 +137,13 @@ mod tests {
         let nonce = (0..32).into_iter().collect::<Vec<u8>>();
         let mut message = vec![];
         for x in 0..100 {
-            message.push(x as u8);
+            // test encryption of zero-sized inputs when x=0
+            if x != 0 {
+                message.push(x as u8);
+            }
+
             let ciphertext = crate::encrypt(&pk, &message, &nonce).unwrap();
+            assert_ne!(ciphertext, message);
             let plaintext = crate::decrypt(&sk, &ciphertext).unwrap();
             assert_eq!(plaintext, message);
         }
