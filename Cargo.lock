@@ -87,7 +87,7 @@ checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 [[package]]
 name = "pqc_kyber"
 version = "0.3.0"
-source = "git+https://github.com/Avarok-Cybersecurity/kyber.git?branch=master#baccf3b356b3f828b4a5450636025a535b2bbf8f"
+source = "git+https://github.com/Avarok-Cybersecurity/kyber.git?branch=master#d142bad055bf90cf3b4bc61b1f3773d9f8daff7f"
 dependencies = [
  "cc",
  "getrandom",
