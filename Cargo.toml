@@ -15,6 +15,7 @@ kyber512 = ["pqc_kyber/kyber512"]
 wasm = ["pqc_kyber/wasm"]
 zeroize = ["pqc_kyber/zeroize"]
 avx2 = ["pqc_kyber/avx2"]
+90s = ["pqc_kyber/90s"]
 
 [dependencies]
 pqc_kyber = { git = "https://github.com/Avarok-Cybersecurity/kyber.git", branch = "master" }
