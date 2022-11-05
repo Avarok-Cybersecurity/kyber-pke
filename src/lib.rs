@@ -16,7 +16,8 @@ pub fn encrypt<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>>(
     Ok(out)
 }
 
-fn ct_len(plaintext_len: usize) -> usize {
+/// returns the ciphertext expected length given an input plaintext length
+pub fn ct_len(plaintext_len: usize) -> usize {
     std::cmp::max(KYBER_CIPHERTEXTBYTES, div_ceil(plaintext_len as f32, KYBER_BLOCK_SIZE as f32) * KYBER_CIPHERTEXTBYTES) + LENGTH_FIELD
 }
 
