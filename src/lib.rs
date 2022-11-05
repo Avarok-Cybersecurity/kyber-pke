@@ -1,6 +1,8 @@
 use crate::Error::Decrypt;
 use byteorder::{ByteOrder, NetworkEndian, WriteBytesExt};
-use pqc_kyber::{PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES, KYBER_SECRETKEYBYTES, indcpa_keypair};
+use pqc_kyber::{
+    indcpa_keypair, PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES, KYBER_SECRETKEYBYTES,
+};
 
 const KYBER_BLOCK_SIZE: usize = 32;
 const LENGTH_FIELD: usize = 8;
@@ -18,7 +20,22 @@ pub fn encrypt<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>>(
 
 /// returns the ciphertext expected length given an input plaintext length
 pub fn ct_len(plaintext_len: usize) -> usize {
-    std::cmp::max(KYBER_CIPHERTEXTBYTES, div_ceil(plaintext_len as f32, KYBER_BLOCK_SIZE as f32) * KYBER_CIPHERTEXTBYTES) + LENGTH_FIELD
+    std::cmp::max(
+        KYBER_CIPHERTEXTBYTES,
+        div_ceil(plaintext_len as f32, KYBER_BLOCK_SIZE as f32) * KYBER_CIPHERTEXTBYTES,
+    ) + LENGTH_FIELD
+}
+
+pub fn plaintext_len(ciphertext: &[u8]) -> Option<usize> {
+    // The final 8 bytes are for the original length of the plaintext
+    let split_pt = ciphertext.len().saturating_sub(8);
+    if split_pt > ciphertext.len() || split_pt == 0 {
+        return None;
+    }
+
+    let (_, field_length_be) = ciphertext.split_at(split_pt);
+    let plaintext_length = byteorder::NetworkEndian::read_u64(field_length_be) as usize;
+    Some(plaintext_length)
 }
 
 pub fn encrypt_into<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>, O: AsMut<[u8]>>(
@@ -82,16 +99,10 @@ pub fn decrypt<T: AsRef<[u8]>, R: AsRef<[u8]>>(
         return Err(Decrypt(format!("The input ciphertext is too short")));
     }
 
-    // The final 8 bytes are for the original length of the plaintext
+    let plaintext_length = plaintext_len(ciphertext)
+        .ok_or_else(|| Error::Decrypt("Invalid ciphertext input length".to_string()))?;
     let split_pt = ciphertext.len().saturating_sub(8);
-    if split_pt > ciphertext.len() || split_pt == 0 {
-        return Err(Error::Decrypt(
-            "Invalid ciphertext input length".to_string(),
-        ));
-    }
-
-    let (concatenated_ciphertexts, field_length_be) = ciphertext.split_at(split_pt);
-    let plaintext_length = byteorder::NetworkEndian::read_u64(field_length_be) as usize;
+    let (concatenated_ciphertexts, _) = ciphertext.split_at(split_pt);
     // pt len < 32: size must be 32
     // pt len = 32: size must be 32
     // pt len > 32: size must be div.ceil(pt.len()/32)*32
