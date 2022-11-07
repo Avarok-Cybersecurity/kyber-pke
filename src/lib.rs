@@ -150,7 +150,7 @@ mod tests {
         let (pk, sk) = pke_keypair();
         let nonce = (0..32).into_iter().collect::<Vec<u8>>();
         let mut message = vec![];
-        for x in 0..100 {
+        for x in 0..1000 {
             // test encryption of zero-sized inputs when x=0
             if x != 0 {
                 message.push(x as u8);
@@ -161,5 +161,16 @@ mod tests {
             let plaintext = crate::decrypt(&sk, &ciphertext).unwrap();
             assert_eq!(plaintext, message);
         }
+    }
+
+    #[test]
+    fn test_pke_large() {
+        let (pk, sk) = pke_keypair();
+        let nonce = (0..32).into_iter().collect::<Vec<u8>>();
+        let mut message = (0..100000).into_iter().map(|r| (r % 256) as u8).collect::<Vec<u8>>();
+        let ciphertext = crate::encrypt(&pk, &message, &nonce).unwrap();
+        assert_ne!(ciphertext, message);
+        let plaintext = crate::decrypt(&sk, &ciphertext).unwrap();
+        assert_eq!(plaintext, message);
     }
 }
