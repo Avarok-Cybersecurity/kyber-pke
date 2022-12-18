@@ -167,7 +167,7 @@ mod tests {
     fn test_pke_large() {
         let (pk, sk) = pke_keypair();
         let nonce = (0..32).into_iter().collect::<Vec<u8>>();
-        let mut message = (0..100000).into_iter().map(|r| (r % 256) as u8).collect::<Vec<u8>>();
+        let mut message = (0..10000).into_iter().map(|r| (r % 256) as u8).collect::<Vec<u8>>();
         let ciphertext = crate::encrypt(&pk, &message, &nonce).unwrap();
         assert_ne!(ciphertext, message);
         let plaintext = crate::decrypt(&sk, &ciphertext).unwrap();
