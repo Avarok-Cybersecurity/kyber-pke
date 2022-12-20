@@ -133,6 +133,12 @@ pub fn pke_keypair() -> (PublicKey, SecretKey) {
     (public, secret)
 }
 
+pub fn kem_keypair() -> (PublicKey, SecretKey) {
+    let mut rng = rand::rngs::OsRng::default();
+    let keypair = pqc_kyber::keypair(&mut rng);
+    (keypair.public, keypair.secret)
+}
+
 #[derive(Debug, Clone)]
 pub enum Error {
     Encrypt(String),
