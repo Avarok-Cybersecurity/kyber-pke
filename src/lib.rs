@@ -4,6 +4,8 @@ use pqc_kyber::{
     indcpa_keypair, PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES, KYBER_SECRETKEYBYTES,
 };
 
+pub use pqc_kyber::{encapsulate, decapsulate};
+
 const KYBER_BLOCK_SIZE: usize = 32;
 const LENGTH_FIELD: usize = 8;
 
@@ -167,7 +169,7 @@ mod tests {
     fn test_pke_large() {
         let (pk, sk) = pke_keypair();
         let nonce = (0..32).into_iter().collect::<Vec<u8>>();
-        let mut message = (0..10000).into_iter().map(|r| (r % 256) as u8).collect::<Vec<u8>>();
+        let message = (0..10000).into_iter().map(|r| (r % 256) as u8).collect::<Vec<u8>>();
         let ciphertext = crate::encrypt(&pk, &message, &nonce).unwrap();
         assert_ne!(ciphertext, message);
         let plaintext = crate::decrypt(&sk, &ciphertext).unwrap();
