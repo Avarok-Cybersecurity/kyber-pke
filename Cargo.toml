@@ -18,6 +18,7 @@ avx2 = ["pqc_kyber/avx2"]
 90s = ["pqc_kyber/90s"]
 
 [dependencies]
-pqc_kyber = { git = "https://github.com/Avarok-Cybersecurity/kyber.git", branch = "master" }
+pqc_kyber = { git = "https://github.com/Argyle-Software/kyber.git", features = ["hazmat"] }
+#pqc_kyber = { git = "https://github.com/Avarok-Cybersecurity/kyber.git", branch = "master" }
 byteorder = "1.4.3"
 rand = "0.8.5"

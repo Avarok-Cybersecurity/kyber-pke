@@ -1,10 +1,9 @@
 use crate::Error::Decrypt;
 use byteorder::{ByteOrder, NetworkEndian, WriteBytesExt};
-use pqc_kyber::{
-    indcpa_keypair, PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES, KYBER_SECRETKEYBYTES,
-};
+use pqc_kyber::{PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES, KYBER_SECRETKEYBYTES};
 
-pub use pqc_kyber::{encapsulate, decapsulate};
+use pqc_kyber::indcpa::{indcpa_dec, indcpa_enc, indcpa_keypair};
+pub use pqc_kyber::{decapsulate, encapsulate};
 
 const KYBER_BLOCK_SIZE: usize = 32;
 const LENGTH_FIELD: usize = 8;
@@ -68,15 +67,15 @@ pub fn encrypt_into<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>, O: AsMut<[u8
                 let mut buf = [0u8; KYBER_BLOCK_SIZE];
                 let slice = &mut buf[..chunk.len()];
                 slice.copy_from_slice(chunk);
-                pqc_kyber::indcpa_enc(output, &buf, public_key, nonce);
+                indcpa_enc(output, &buf, public_key, nonce);
             } else {
-                pqc_kyber::indcpa_enc(output, chunk, public_key, nonce);
+                indcpa_enc(output, chunk, public_key, nonce);
             }
         }
     } else {
         // fill with zeroes
         let zeroes = [0u8; KYBER_BLOCK_SIZE];
-        pqc_kyber::indcpa_enc(ret, &zeroes, public_key, nonce);
+        indcpa_enc(ret, &zeroes, public_key, nonce);
     }
 
     // append the plaintext len
@@ -115,7 +114,7 @@ pub fn decrypt<T: AsRef<[u8]>, R: AsRef<[u8]>>(
         .chunks(CIPHERTEXT_BLOCK_LEN)
         .zip(ret.chunks_mut(KYBER_BLOCK_SIZE))
     {
-        pqc_kyber::indcpa_dec(output, chunk, secret_key);
+        indcpa_dec(output, chunk, secret_key);
     }
 
     // finally, truncate the vec, as the final block is 32 in length, and may be more
@@ -175,7 +174,10 @@ mod tests {
     fn test_pke_large() {
         let (pk, sk) = pke_keypair();
         let nonce = (0..32).into_iter().collect::<Vec<u8>>();
-        let message = (0..10000).into_iter().map(|r| (r % 256) as u8).collect::<Vec<u8>>();
+        let message = (0..10000)
+            .into_iter()
+            .map(|r| (r % 256) as u8)
+            .collect::<Vec<u8>>();
         let ciphertext = crate::encrypt(&pk, &message, &nonce).unwrap();
         assert_ne!(ciphertext, message);
         let plaintext = crate::decrypt(&sk, &ciphertext).unwrap();
