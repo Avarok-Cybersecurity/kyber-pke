@@ -1,6 +1,8 @@
 use crate::Error::Decrypt;
 use byteorder::{ByteOrder, NetworkEndian, WriteBytesExt};
-use pqc_kyber::{PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES, KYBER_SECRETKEYBYTES};
+use pqc_kyber::{
+    Keypair, KyberError, PublicKey, SecretKey, KYBER_CIPHERTEXTBYTES, KYBER_SECRETKEYBYTES,
+};
 
 use pqc_kyber::indcpa::{indcpa_dec, indcpa_enc, indcpa_keypair};
 pub use pqc_kyber::{decapsulate, encapsulate};
@@ -124,18 +126,17 @@ pub fn decrypt<T: AsRef<[u8]>, R: AsRef<[u8]>>(
     Ok(ret)
 }
 
-pub fn pke_keypair() -> (PublicKey, SecretKey) {
+pub fn pke_keypair() -> Result<(PublicKey, SecretKey), KyberError> {
     let mut rng = rand::rngs::OsRng::default();
     let mut public = [0u8; pqc_kyber::KYBER_PUBLICKEYBYTES];
     let mut secret = [0u8; KYBER_SECRETKEYBYTES];
-    indcpa_keypair(&mut public, &mut secret, None, &mut rng);
-    (public, secret)
+    indcpa_keypair(&mut public, &mut secret, None, &mut rng)?;
+    Ok((public, secret))
 }
 
-pub fn kem_keypair() -> (PublicKey, SecretKey) {
+pub fn kem_keypair() -> Result<Keypair, KyberError> {
     let mut rng = rand::rngs::OsRng::default();
-    let keypair = pqc_kyber::keypair(&mut rng);
-    (keypair.public, keypair.secret)
+    pqc_kyber::keypair(&mut rng)
 }
 
 #[derive(Debug, Clone)]
@@ -154,7 +155,7 @@ mod tests {
 
     #[test]
     fn test_pke() {
-        let (pk, sk) = pke_keypair();
+        let (pk, sk) = pke_keypair().unwrap();
         let nonce = (0..32).into_iter().collect::<Vec<u8>>();
         let mut message = vec![];
         for x in 0..1000 {
@@ -172,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_pke_large() {
-        let (pk, sk) = pke_keypair();
+        let (pk, sk) = pke_keypair().unwrap();
         let nonce = (0..32).into_iter().collect::<Vec<u8>>();
         let message = (0..10000)
             .into_iter()

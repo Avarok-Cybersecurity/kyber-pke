@@ -1,6 +1,6 @@
 [package]
 name = "kyber-pke"
-version = "0.3.0"
+version = "0.4.0"
 description = "Kyber encryption library for arbitrary plaintext inputs"
 edition = "2021"
 license = "Apache-2.0"
@@ -19,6 +19,6 @@ avx2 = ["pqc_kyber/avx2"]
 90s = ["pqc_kyber/90s"]
 
 [dependencies]
-pqc_kyber = { version = "0.4.0", features = ["hazmat"] }
+pqc_kyber = { version = "0.7.1", features = ["hazmat"] }
 byteorder = "1.4.3"
 rand = "0.8.5"
