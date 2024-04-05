@@ -98,10 +98,10 @@ dependencies = [
 
 [[package]]
 name = "kyber-pke"
-version = "0.3.0"
+version = "0.5.0"
 dependencies = [
  "byteorder",
- "pqc_kyber",
+ "pqc_kyber_kyberslash",
  "rand",
 ]
 
@@ -133,10 +133,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 
 [[package]]
-name = "pqc_kyber"
+name = "pqc_kyber_kyberslash"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b23e1823e8a78ad67990c5cb843d5eba75ab3b8a44d041f3814fde89463dc6f"
+checksum = "207d5f62689c9bca32505356e590921f70cd0dd4b0a2473924a1c51ccfd7119a"
 dependencies = [
  "cc",
  "getrandom",

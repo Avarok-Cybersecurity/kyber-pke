@@ -53,6 +53,13 @@ pub fn encrypt_into<T: AsRef<[u8]>, R: AsRef<[u8]>, V: AsRef<[u8]>, O: AsMut<[u8
     let plaintext_length = plaintext.len();
     let ret = ret.as_mut();
 
+    if nonce.len() != 32 {
+        return Err(Error::Encrypt(format!(
+            "Nonce must be 32 bytes, got {}",
+            nonce.len()
+        )));
+    }
+
     if ret.len() < ct_len(plaintext.len()) {
         return Err(Error::Encrypt(format!(
             "Bad output buffer len {}",
@@ -99,7 +106,7 @@ pub fn decrypt<T: AsRef<[u8]>, R: AsRef<[u8]>>(
     const CIPHERTEXT_BLOCK_LEN: usize = pqc_kyber::KYBER_CIPHERTEXTBYTES;
 
     if ciphertext.len() < CIPHERTEXT_BLOCK_LEN {
-        return Err(Decrypt(format!("The input ciphertext is too short")));
+        return Err(Decrypt("The input ciphertext is too short".to_string()));
     }
 
     let plaintext_length = plaintext_len(ciphertext)
@@ -127,7 +134,7 @@ pub fn decrypt<T: AsRef<[u8]>, R: AsRef<[u8]>>(
 }
 
 pub fn pke_keypair() -> Result<(PublicKey, SecretKey), KyberError> {
-    let mut rng = rand::rngs::OsRng::default();
+    let mut rng = rand::rngs::OsRng;
     let mut public = [0u8; pqc_kyber::KYBER_PUBLICKEYBYTES];
     let mut secret = [0u8; KYBER_SECRETKEYBYTES];
     indcpa_keypair(&mut public, &mut secret, None, &mut rng)?;
@@ -135,7 +142,7 @@ pub fn pke_keypair() -> Result<(PublicKey, SecretKey), KyberError> {
 }
 
 pub fn kem_keypair() -> Result<Keypair, KyberError> {
-    let mut rng = rand::rngs::OsRng::default();
+    let mut rng = rand::rngs::OsRng;
     pqc_kyber::keypair(&mut rng)
 }
 
@@ -156,7 +163,7 @@ mod tests {
     #[test]
     fn test_pke() {
         let (pk, sk) = pke_keypair().unwrap();
-        let nonce = (0..32).into_iter().collect::<Vec<u8>>();
+        let nonce = (0..32).collect::<Vec<u8>>();
         let mut message = vec![];
         for x in 0..1000 {
             // test encryption of zero-sized inputs when x=0
@@ -164,9 +171,9 @@ mod tests {
                 message.push(x as u8);
             }
 
-            let ciphertext = crate::encrypt(&pk, &message, &nonce).unwrap();
+            let ciphertext = crate::encrypt(pk, &message, &nonce).unwrap();
             assert_ne!(ciphertext, message);
-            let plaintext = crate::decrypt(&sk, &ciphertext).unwrap();
+            let plaintext = crate::decrypt(sk, &ciphertext).unwrap();
             assert_eq!(plaintext, message);
         }
     }
@@ -174,14 +181,11 @@ mod tests {
     #[test]
     fn test_pke_large() {
         let (pk, sk) = pke_keypair().unwrap();
-        let nonce = (0..32).into_iter().collect::<Vec<u8>>();
-        let message = (0..10000)
-            .into_iter()
-            .map(|r| (r % 256) as u8)
-            .collect::<Vec<u8>>();
-        let ciphertext = crate::encrypt(&pk, &message, &nonce).unwrap();
+        let nonce = (0..32).collect::<Vec<u8>>();
+        let message = (0..10000).map(|r| (r % 256) as u8).collect::<Vec<u8>>();
+        let ciphertext = crate::encrypt(pk, &message, nonce).unwrap();
         assert_ne!(ciphertext, message);
-        let plaintext = crate::decrypt(&sk, &ciphertext).unwrap();
+        let plaintext = crate::decrypt(sk, &ciphertext).unwrap();
         assert_eq!(plaintext, message);
     }
 }
