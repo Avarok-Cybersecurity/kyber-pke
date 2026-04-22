@@ -21,4 +21,4 @@ avx2 = ["pqc_kyber/avx2"]
 [dependencies]
 pqc_kyber = { package = "pqc_kyber_kyberslash", version = "0.7.1", features = ["hazmat"] }
 byteorder = "1.4.3"
-rand = "0.8.5"
+rand = "0.8.6"
